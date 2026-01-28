@@ -8,7 +8,7 @@ from datetime import datetime
 PROJECT_NAME = "Brantford SEC Arena"
 PRINCIPAL = 140000000      # $140 Million
 AMORTIZATION = 30          # 30 Years
-MUNICIPAL_SPREAD = 1.10    # 1.10% Risk Premium
+MUNICIPAL_SPREAD = 0.09    # 0.09% Risk Premium
 HOUSEHOLDS = 45000         # Est. Taxable Households
 CSV_FILE = "interest_rate_log.csv"
 
