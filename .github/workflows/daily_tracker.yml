@@ -4,8 +4,9 @@ on:
   push:
   schedule:
     - cron: '0 14 * * *' # Runs at 9:00 AM EST
-  workflow_dispatch:      # Allows manual testing
+  workflow_dispatch:
 
+# Explicitly grant permission at the top level
 permissions:
   contents: write
 
@@ -13,26 +14,27 @@ jobs:
   track-rates:
     runs-on: ubuntu-latest
     steps:
+      # FIX: Login immediately using the checkout step
       - name: Checkout Code
         uses: actions/checkout@v4
-      
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          
+
       - name: Install Dependencies
         run: pip install requests
-        
+
       - name: Run Script
         run: python main.py
-        
+
       - name: Save Data
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "RateBot"
-          git config --global user.email "bot@noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add interest_rate_log.csv
           git commit -m "Daily Update" || exit 0
-          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git HEAD:main
+          git push
