@@ -48,9 +48,10 @@
 
 <div class="container">
     <header>
-        <h1>Brantford Debt Dashboard</h1>
-        <p class="subtitle">Tracking the interest rate risk on planned Capital Projects</p>
-    </header>
+    <h1>Brantford Debt Dashboard</h1>
+    <p class="subtitle">Tracking the interest rate risk on planned Capital Projects</p>
+    <p style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px;">Last Updated: <span id="last-update" style="font-weight:bold;">--</span></p>
+</header>
 
     <div class="warning-box">
         <strong>⚠️ Important Context:</strong> Interest rates are not set until the project is completed and the debenture is issued. The costs below are <em>estimates</em> based on today's live rates. If rates rise before construction finishes, these costs will increase.
@@ -169,11 +170,19 @@ const response = await fetch('./interest_rate_log.csv?t=' + new Date().getTime()
                 annualCosts.push(parseFloat(c[3])); // Graphing Total City Annual Payment
                 
                 last = { 
-                    yield: parseFloat(c[1]), 
-                    totalRate: parseFloat(c[2]), 
-                    annual: parseFloat(c[3]) 
+                yield: parseFloat(c[1]), 
+                totalRate: parseFloat(c[2]), 
+                annual: parseFloat(c[3]),
+                date: c[0]  // <--- ADD THIS LINE (Captures the date/time)
+            };) 
                 };
             });
+    last = { 
+                yield: parseFloat(c[1]), 
+                totalRate: parseFloat(c[2]), 
+                annual: parseFloat(c[3]),
+                date: c[0]  // <--- ADD THIS LINE (Captures the date/time)
+            };
 
             // UPDATE CARDS
             document.getElementById('bond-yield').innerText = last.yield + '%';
