@@ -6,7 +6,7 @@ from datetime import datetime
 # --- CONFIGURATION ---
 CSV_FILE = "interest_rate_log.csv"
 MUNICIPAL_SPREAD = 0.90    # 0.90% Risk Premium
-SAFE_FALLBACK_RATE = 3.86  # Use this if Bank of Canada API is down
+SAFE_FALLBACK_RATE = 3.86  # Safety Net if Bank of Canada is down
 
 # --- THE DEBT "SHOPPING LIST" ---
 PROJECTS = [
@@ -18,28 +18,25 @@ PROJECTS = [
 
 def get_canadian_rate():
     """
-    STRICTLY Bank of Canada (Series V122544).
-    No US proxies allowed.
+    STRICTLY Bank of Canada. No US proxies allowed.
     """
     try:
-        # We ask for the last 10 observations to ensure we find a valid entry
-        # even if they haven't updated for a few days.
+        # Get last 10 observations to ensure we find a valid entry
         url = "https://www.bankofcanada.ca/valet/observations/V122544/json?recent=10"
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, timeout=20)
         data = response.json()
         
         if "observations" in data and len(data["observations"]) > 0:
-            # Get the very last observation in the list
             last_entry = data["observations"][-1]
             val = float(last_entry["V122544"]["v"])
-            print(f"✅ Source: Bank of Canada (Official). Rate: {val}%")
+            print(f"✅ Source: Bank of Canada. Rate: {val}%")
             return val
             
     except Exception as e:
-        print(f"⚠️ Bank of Canada API Error: {e}")
+        print(f"⚠️ Bank of Canada Error: {e}")
     
     # If BoC fails, we use the manual safety rate.
-    print(f"❌ API Failed. Using Manual Fallback: {SAFE_FALLBACK_RATE}%")
+    print(f"❌ API Failed. Using Fallback: {SAFE_FALLBACK_RATE}%")
     return SAFE_FALLBACK_RATE
 
 def calculate_project_costs(bond_yield):
@@ -56,11 +53,9 @@ def calculate_project_costs(bond_yield):
         annual_payment = numerator / denominator
         
         total_cost = annual_payment * p["term"]
-        total_interest = total_cost - p["principal"]
-        
         grand_total_debt += p["principal"]
         grand_total_annual += annual_payment
-        grand_total_interest += total_interest
+        grand_total_interest += (total_cost - p["principal"])
 
     return {
         "date": datetime.now().strftime("%Y-%m-%d"),
@@ -71,18 +66,15 @@ def calculate_project_costs(bond_yield):
     }
 
 def update_csv(data):
-    # We use 'w' mode (Write) to completely overwrite the file 
-    # This wipes out the bad "0.487%" entry from earlier today.
+    # 'w' mode overwrites the file to clear any bad data from history
     fieldnames = ["date", "bond_yield", "total_rate", "grand_annual", "grand_interest"]
-    
     with open(CSV_FILE, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow(data)
-    print(f"✅ Database repaired and updated.")
+    print(f"✅ Database repaired.")
 
 if __name__ == "__main__":
-    print("--- Canada-Only Debt Tracker ---")
     rate = get_canadian_rate()
     data = calculate_project_costs(rate)
     update_csv(data)
