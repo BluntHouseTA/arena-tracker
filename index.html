@@ -170,14 +170,15 @@ const response = await fetch('./interest_rate_log.csv?t=' + new Date().getTime()
                 annualCosts.push(parseFloat(c[3])); // Graphing Total City Annual Payment
                 
                 last = { 
-                yield: parseFloat(c[1]), 
-                totalRate: parseFloat(c[2]), 
-                annual: parseFloat(c[3]),
-                date: c[0]  // <--- ADD THIS LINE (Captures the date/time)
-            };) 
+                    yield: parseFloat(c[1]), 
+                    totalRate: parseFloat(c[2]), 
+                    annual: parseFloat(c[3]),
+                    date: c[0]   // This captures the "YYYY-MM-DD HH:MM"
                 };
             });
-    last = { 
+
+            // UPDATE TIMESTAMP
+            document.getElementById('last-update').innerText = last.date; 
                 yield: parseFloat(c[1]), 
                 totalRate: parseFloat(c[2]), 
                 annual: parseFloat(c[3]),
