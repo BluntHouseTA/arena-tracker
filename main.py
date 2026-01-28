@@ -17,25 +17,37 @@ PROJECTS = [
 ]
 
 def get_best_rate():
-    # 1. Try Bank of Canada
+    # 1. Try Bank of Canada (Primary)
     try:
         url = "https://www.bankofcanada.ca/valet/observations/V122544/json?recent_weeks=2"
         response = requests.get(url, timeout=10)
         data = response.json()
         if "observations" in data and len(data["observations"]) > 0:
-            return float(data["observations"][-1]["V122544"]["v"])
-    except:
-        pass
+            val = float(data["observations"][-1]["V122544"]["v"])
+            print(f"✅ Source: Bank of Canada. Rate: {val}%")
+            return val
+    except Exception as e:
+        print(f"⚠️ BoC Failed: {e}")
     
-    # 2. Try Yahoo Proxy
+    # 2. Try Yahoo Proxy (Backup)
     try:
+        print("   Switching to Yahoo Finance Proxy...")
         data = yf.Ticker("^TYX").history(period="1d")
         if not data.empty:
-            return data['Close'].iloc[-1] / 10
-    except:
-        pass
+            val = float(data['Close'].iloc[-1])
+            
+            # SMART FIX: Check if Yahoo is sending 48.7 or 4.87
+            if val > 12: 
+                val = val / 10  # Convert 48.7 -> 4.87
+            
+            print(f"✅ Source: Yahoo Proxy. Rate: {val}%")
+            return val
+    except Exception as e:
+        print(f"⚠️ Yahoo Failed: {e}")
 
-    return 3.861 # Fail Safe
+    # 3. Fail Safe (If all else fails, use a safe default)
+    print("❌ All feeds failed. Using Default.")
+    return 3.86
 
 def calculate_project_costs(bond_yield):
     total_rate = bond_yield + MUNICIPAL_SPREAD
@@ -67,20 +79,13 @@ def calculate_project_costs(bond_yield):
 
 def update_csv(data):
     file_exists = os.path.isfile(CSV_FILE)
-    
-    # Define the headers explicitly so the Javascript can read them
     fieldnames = ["date", "bond_yield", "total_rate", "grand_annual", "grand_interest"]
     
-    mode = 'a' # Append mode
-    if not file_exists:
-        mode = 'w' # Write mode (creates new file)
-
-    with open(CSV_FILE, mode=mode, newline='') as file:
+    # Force overwrite mode to clear the bad "0.487%" entry from today
+    # Since we run this once a day, overwriting today's file is safer
+    with open(CSV_FILE, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        
-        if not file_exists:
-            writer.writeheader() # Crucial: Create the header row for the website
-            
+        writer.writeheader()
         writer.writerow(data)
     print(f"✅ Dashboard Updated.")
 
