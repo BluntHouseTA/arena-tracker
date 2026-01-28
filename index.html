@@ -20,7 +20,7 @@
         
         /* Cards */
         .rate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-        .impact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+        .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; } /* 3 Columns now */
         .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
         .card h3 { margin: 0 0 5px 0; font-size: 0.85rem; color: #7f8c8d; }
         .card .value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
@@ -37,13 +37,18 @@
 
         /* Chart */
         .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* Responsive: Stack cards on small screens */
+        @media (max-width: 600px) {
+            .rate-grid, .impact-grid { grid-template-columns: 1fr !important; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Brantford Debt Dashboard</h1>
+        <h1>Brantford Debt Dashboard (v4)</h1>
         <p class="subtitle">Tracking the interest rate risk on planned Capital Projects</p>
         <p class="meta-info">
             Last Updated: <span id="last-update" style="font-weight:bold;">Loading...</span>
@@ -60,8 +65,21 @@
     </div>
 
     <div class="impact-grid">
-        <div class="card danger"><h3>Total Estimated Debt</h3><div class="value" id="total-principal">$337.0 M</div><div class="sub-value">Combined Project Value</div></div>
-        <div class="card danger"><h3>Total Annual Payments</h3><div class="value" id="total-annual">$--</div><div class="sub-value">Taxpayer Burden / Year</div></div>
+        <div class="card danger">
+            <h3>Total Estimated Debt</h3>
+            <div class="value" id="total-principal">$337.0 M</div>
+            <div class="sub-value">Combined Project Value</div>
+        </div>
+        <div class="card danger">
+            <h3>Total Annual Payments</h3>
+            <div class="value" id="total-annual">$--</div>
+            <div class="sub-value">City-wide Tax Burden</div>
+        </div>
+        <div class="card" style="border: 2px solid #2c3e50;">
+            <h3>Cost Per Household</h3>
+            <div class="value" id="household-impact">$--</div>
+            <div class="sub-value">Per Year (Est.)</div>
+        </div>
     </div>
 
     <h3>Project Breakdown (Estimated)</h3>
@@ -87,7 +105,14 @@
 </div>
 
 <script>
-    const p_arena = 140000000; const p_police = 56000000; const p_sw = 44000000; const p_oak = 97000000; const term = 30;
+    const p_arena = 140000000; 
+    const p_police = 56000000; 
+    const p_sw = 44000000; 
+    const p_oak = 97000000; 
+    const term = 30;
+    
+    // NEW: Estimate of Brantford Households (Census 2021 was ~41k, est 45k now)
+    const households = 45000; 
 
     function showError(msg) {
         const box = document.getElementById('debug-console');
@@ -110,7 +135,6 @@
                 if (c.length >= 4) {
                     dates.push(c[0]);
                     annualCosts.push(parseFloat(c[3]));
-                    // CAPTURE SOURCE (Column 5) IF IT EXISTS
                     let src = (c.length > 5) ? c[5] : ""; 
                     last = { date: c[0], yield: parseFloat(c[1]), totalRate: parseFloat(c[2]), annual: parseFloat(c[3]), source: src };
                 }
@@ -118,51 +142,32 @@
 
             if (!last) throw new Error("Format Error");
 
-            // --- UI UPDATES ---
+            // --- 1. Basic Info ---
             document.getElementById('last-update').innerText = last.date;
             
-            // Show Source Label if available
+            // Source Label
             if (last.source && last.source.trim() !== "") {
                 const srcLabel = document.getElementById('source-label');
                 srcLabel.style.display = "inline-block";
                 srcLabel.innerText = "DATA: " + last.source.toUpperCase();
-                
-                // Color coding
-                if(last.source.includes("Trading")) srcLabel.style.backgroundColor = "#e1f5fe"; // Blue for Live
-                else srcLabel.style.backgroundColor = "#fff3cd"; // Yellow for Backup
+                if(last.source.includes("Trading")) srcLabel.style.backgroundColor = "#e1f5fe"; 
+                else srcLabel.style.backgroundColor = "#fff3cd"; 
             }
 
             document.getElementById('bond-yield').innerText = last.yield + '%';
             document.getElementById('total-rate').innerText = last.totalRate + '%';
-            document.getElementById('total-annual').innerText = '$' + (last.annual / 1000000).toFixed(1) + 'M';
-
-            // --- MATH ---
-            const r = last.totalRate / 100;
-            const calc = (p) => {
-                const num = p * (r * Math.pow(1+r, term));
-                const den = Math.pow(1+r, term) - 1;
-                const pay = num / den;
-                return { pay: (pay/1000000).toFixed(2) + 'M', int: (((pay*term)-p)/1000000).toFixed(1) + 'M' };
-            };
             
-            const arena = calc(p_arena); document.getElementById('row-arena-pay').innerText = '$' + arena.pay; document.getElementById('row-arena-int').innerText = '$' + arena.int;
-            const police = calc(p_police); document.getElementById('row-police-pay').innerText = '$' + police.pay; document.getElementById('row-police-int').innerText = '$' + police.int;
-            const sw = calc(p_sw); document.getElementById('row-sw-pay').innerText = '$' + sw.pay; document.getElementById('row-sw-int').innerText = '$' + sw.int;
-            const oak = calc(p_oak); document.getElementById('row-oak-pay').innerText = '$' + oak.pay; document.getElementById('row-oak-int').innerText = '$' + oak.int;
-
-            const totalPrincipal = p_arena + p_police + p_sw + p_oak;
+            // --- 2. THE BIG MATH ---
             const totalAnnual = last.annual;
+            const totalPrincipal = p_arena + p_police + p_sw + p_oak;
             const totalInterest = (totalAnnual * term) - totalPrincipal;
+            const perHousehold = totalAnnual / households; // <--- MATH IS HERE
+
+            // --- 3. Update the UI Cards ---
+            document.getElementById('total-annual').innerText = '$' + (totalAnnual / 1000000).toFixed(1) + 'M';
             document.getElementById('table-total-principal').innerText = '$' + (totalPrincipal / 1000000).toFixed(1) + ' M';
             document.getElementById('table-total-annual').innerText = '$' + (totalAnnual / 1000000).toFixed(2) + 'M';
             document.getElementById('table-total-interest').innerText = '$' + (totalInterest / 1000000).toFixed(1) + 'M';
-
-            const ctx = document.getElementById('rateChart').getContext('2d');
-            new Chart(ctx, { type: 'line', data: { labels: dates, datasets: [{ label: 'Total Annual Pay', data: annualCosts.map(c=>c/1000000), borderColor: '#c0392b', fill: true }] } });
-
-        } catch (e) { showError(e.message); }
-    }
-    fetchData();
-</script>
-</body>
-</html>
+            
+            // Update New Household Card
+            document.getElementById('household-impact').innerText = '$' + perHousehold.
