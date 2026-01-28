@@ -11,34 +11,31 @@ MUNICIPAL_SPREAD = 1.10    # 1.10% Risk Premium
 HOUSEHOLDS = 45000         # Est. Taxable Households
 CSV_FILE = "interest_rate_log.csv"
 
-def get_live_bond_yield():
-    # Priority List of Series IDs to try
-    # 1. V122544: Long-Term Benchmark (Approx 30yr)
-    # 2. V122530: Avg Yield Marketable Bonds > 10yrs (Excellent Proxy)
-    # 3. V122543: 10-Year Benchmark (Safety Net)
-    series_candidates = ["V122544", "V122530", "V122543"]
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124 Safari/537.36"
-    }
+# --- MANUAL OVERRIDE (REAL TIME QUOTES) ---
+# If you have a live rate (like 3.861), type it here.
+# Set to 0 if you want to try the automatic Bank of Canada API.
+MANUAL_OVERRIDE = 3.861 
 
-    for series_id in series_candidates:
-        url = f"https://www.bankofcanada.ca/valet/observations/{series_id}/json?recent=1"
-        try:
-            print(f"Trying Series ID: {series_id}...")
-            response = requests.get(url, headers=headers, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "observations" in data and len(data["observations"]) > 0:
-                    val = data["observations"][-1][series_id]["v"]
-                    print(f"✅ Success! Found rate using {series_id}")
-                    return float(val)
-            else:
-                print(f"⚠️ Failed to fetch {series_id} (Status: {response.status_code})")
-                
-        except Exception as e:
-            print(f"⚠️ Error with {series_id}: {e}")
+def get_bond_yield():
+    """
+    Decides whether to use the Manual Override or fetch from API.
+    """
+    if MANUAL_OVERRIDE > 0:
+        print(f"⚠️ Using Manual Override Rate: {MANUAL_OVERRIDE}%")
+        return MANUAL_OVERRIDE
+
+    # If Override is 0, try the Bank of Canada API (Series V122544)
+    series_id = "V122544"
+    url = f"https://www.bankofcanada.ca/valet/observations/{series_id}/json?recent=1"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        data = response.json()
+        if "observations" in data and len(data["observations"]) > 0:
+            return float(data["observations"][-1][series_id]["v"])
+    except Exception as e:
+        print(f"API Error: {e}")
     
     return None
 
@@ -64,16 +61,20 @@ def calculate_impact(bond_yield):
 def update_csv(data):
     file_exists = os.path.isfile(CSV_FILE)
     
-    # Prevent duplicate entries for the same day
+    # Check if we already have data for today to avoid duplicates
     if file_exists:
         with open(CSV_FILE, 'r') as f:
             lines = f.readlines()
-            if len(lines) > 1:
-                last_line = lines[-1]
-                if data["date"] in last_line:
-                    print("⚠️ Data for today already exists. Skipping write.")
-                    return
+            if len(lines) > 1 and data["date"] in lines[-1]:
+                # If today exists, OVERWRITE the last line with the new manual rate
+                print("♻️ Updating today's existing entry...")
+                lines[-1] = f"{data['date']},{data['bond_yield']},{data['total_rate']},{data['annual_payment']},{data['total_interest']},{data['household_impact']}\n"
+                with open(CSV_FILE, 'w') as f_write:
+                    f_write.writelines(lines)
+                print(f"✅ Updated {CSV_FILE} with Manual Rate.")
+                return
 
+    # If new day, append as normal
     with open(CSV_FILE, mode='a', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=data.keys())
         if not file_exists:
@@ -83,12 +84,12 @@ def update_csv(data):
 
 if __name__ == "__main__":
     print("--- Starting Rate Check ---")
-    bond_yield = get_live_bond_yield()
+    bond_yield = get_bond_yield()
     
     if bond_yield:
-        print(f"Live Yield: {bond_yield}%")
+        print(f"Using Yield: {bond_yield}%")
         data = calculate_impact(bond_yield)
         update_csv(data)
     else:
-        print("❌ All Series IDs failed. Script aborted.")
+        print("❌ Failed to get a rate.")
         exit(1)
