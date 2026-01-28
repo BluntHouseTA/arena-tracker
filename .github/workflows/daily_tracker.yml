@@ -22,7 +22,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests
+          - name: Install Dependencies
+        run: |
+          pip install requests beautifulsoup4
 
       - name: Run Tracker Script
         run: python main.py
