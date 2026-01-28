@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEC Arena Financial Tracker</title>
+    <title>Brantford City Debt Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #e74c3c; --bg: #f4f7f6; }
+        :root { --primary: #2c3e50; --accent: #c0392b; --bg: #f4f7f6; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; }
         .container { max-width: 900px; margin: 0 auto; }
         
@@ -14,8 +14,7 @@
         h1 { margin: 0; color: var(--primary); }
         p.subtitle { color: #666; font-size: 0.9rem; margin-top: 5px; }
 
-        /* Section Titles */
-        .section-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #7f8c8d; margin-bottom: 10px; margin-top: 30px; font-weight: bold; }
+        .warning-box { background: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; margin-bottom: 20px; font-size: 0.9rem; color: #856404; border-radius: 4px; }
 
         /* Grid Layouts */
         .rate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
@@ -26,60 +25,99 @@
         .card h3 { margin: 0 0 5px 0; font-size: 0.85rem; color: #7f8c8d; }
         .card .value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
         .card .sub-value { font-size: 0.75rem; color: #95a5a6; margin-top: 3px; }
-        
-        /* Specific Card Styles */
-        .card.highlight .value { color: #2980b9; } /* Blue for Debenture Rate */
-        .card.danger .value { color: var(--accent); } /* Red for Costs */
+        .card.danger .value { color: var(--accent); }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary); color: white; font-size: 0.85rem; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        .num { text-align: right; }
 
         /* Chart */
         .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-
-        /* Mobile Responsive */
-        @media (max-width: 600px) {
-            .rate-grid, .impact-grid { grid-template-columns: 1fr; }
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Brantford SEC Arena Tracker</h1>
-        <p class="subtitle">Tracking the impact of interest rates on the $140M Debenture</p>
+        <h1>Brantford Debt Dashboard</h1>
+        <p class="subtitle">Tracking the interest rate risk on planned Capital Projects</p>
     </header>
 
-    <div class="section-title">The Interest Rate Formula</div>
+    <div class="warning-box">
+        <strong>⚠️ Important Context:</strong> Interest rates are not set until the project is completed and the debenture is issued. The costs below are <em>estimates</em> based on today's live rates. If rates rise before construction finishes, these costs will increase.
+    </div>
+
     <div class="rate-grid">
         <div class="card">
             <h3>Canada 30yr Bond</h3>
             <div class="value" id="bond-yield">--%</div>
-            <div class="sub-value">Base Market Rate</div>
+            <div class="sub-value">Live Market Rate</div>
         </div>
         <div class="card">
             <h3>+ Municipal Spread</h3>
-            <div class="value" id="spread">1.10%</div>
-            <div class="sub-value">Risk Premium (Est.)</div>
+            <div class="value" id="spread">0.90%</div>
+            <div class="sub-value">Risk Premium</div>
         </div>
-        <div class="card highlight">
-            <h3>= Debenture Rate</h3>
+        <div class="card">
+            <h3>= Est. Debenture Rate</h3>
             <div class="value" id="total-rate">--%</div>
             <div class="sub-value">Total Interest Rate</div>
         </div>
     </div>
 
-    <div class="section-title">Community Impact</div>
     <div class="impact-grid">
         <div class="card danger">
-            <h3>Total Interest Cost</h3>
-            <div class="value" id="total-interest">$--</div>
-            <div class="sub-value">Over 30 Year Term</div>
+            <h3>Total Estimated Debt</h3>
+            <div class="value" id="total-principal">$337.0 M</div>
+            <div class="sub-value">Combined Project Value</div>
         </div>
         <div class="card danger">
-            <h3>Household Impact</h3>
-            <div class="value" id="household-impact">$--</div>
-            <div class="sub-value">Per Year (Est.)</div>
+            <h3>Total Annual Payments</h3>
+            <div class="value" id="total-annual">$--</div>
+            <div class="sub-value">Taxpayer Burden / Year</div>
         </div>
     </div>
+
+    <h3>Project Breakdown (Estimated)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th class="num">Principal</th>
+                <th class="num">Annual Payment</th>
+                <th class="num">30-Year Interest</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>SEC Arena</td>
+                <td class="num">$140.0 M</td>
+                <td class="num" id="row-arena-pay">--</td>
+                <td class="num" id="row-arena-int">--</td>
+            </tr>
+            <tr>
+                <td>Police Station Redevelop.</td>
+                <td class="num">$56.0 M</td>
+                <td class="num" id="row-police-pay">--</td>
+                <td class="num" id="row-police-int">--</td>
+            </tr>
+            <tr>
+                <td>Southwest Comm. Centre</td>
+                <td class="num">$44.0 M</td>
+                <td class="num" id="row-sw-pay">--</td>
+                <td class="num" id="row-sw-int">--</td>
+            </tr>
+             <tr>
+                <td>Oak Park Rd Extension</td>
+                <td class="num">$97.0 M</td>
+                <td class="num" id="row-oak-pay">--</td>
+                <td class="num" id="row-oak-int">--</td>
+            </tr>
+        </tbody>
+    </table>
 
     <div class="chart-container">
         <canvas id="rateChart"></canvas>
@@ -87,6 +125,13 @@
 </div>
 
 <script>
+    // HARDCODED PRINCIPALS FOR DISPLAY CALCULATION
+    const p_arena = 140000000;
+    const p_police = 56000000;
+    const p_sw = 44000000;
+    const p_oak = 97000000;
+    const term = 30;
+
     async function fetchData() {
         try {
             const response = await fetch('./interest_rate_log.csv');
@@ -94,69 +139,71 @@
             
             const rows = data.split('\n').slice(1).filter(row => row.trim() !== '');
             const dates = [];
-            const costs = [];
-            const debentureRates = []; // For the graph
+            const annualCosts = [];
             let last = {};
 
             rows.forEach(row => {
                 const c = row.split(',');
-                // CSV Columns: 0=Date, 1=BondYield, 2=TotalRate, 3=AnnualPay, 4=TotalInterest, 5=Household
+                // CSV: 0=Date, 1=BondYield, 2=TotalRate, 3=GrandAnnual, 4=GrandInterest
                 dates.push(c[0]);
-                debentureRates.push(parseFloat(c[2])); // Graphing the full rate
-                costs.push(parseFloat(c[4]));
+                annualCosts.push(parseFloat(c[3])); // Graphing Total City Annual Payment
                 
                 last = { 
-                    yield: c[1], 
-                    totalRate: c[2], 
-                    interest: parseFloat(c[4]), 
-                    impact: parseFloat(c[5]) 
+                    yield: parseFloat(c[1]), 
+                    totalRate: parseFloat(c[2]), 
+                    annual: parseFloat(c[3]) 
                 };
             });
 
-            // Update Text Cards
+            // UPDATE CARDS
             document.getElementById('bond-yield').innerText = last.yield + '%';
             document.getElementById('total-rate').innerText = last.totalRate + '%';
-            document.getElementById('total-interest').innerText = '$' + (last.interest / 1000000).toFixed(1) + 'M';
-            document.getElementById('household-impact').innerText = '$' + last.impact;
+            document.getElementById('total-annual').innerText = '$' + (last.annual / 1000000).toFixed(1) + 'M';
 
-            // Draw Chart
+            // CALCULATE TABLE ROWS LIVE (To keep logic simple)
+            const r = last.totalRate / 100;
+            const calc = (p) => {
+                const num = p * (r * Math.pow(1+r, term));
+                const den = Math.pow(1+r, term) - 1;
+                const pay = num / den;
+                const interest = (pay * term) - p;
+                return { pay: (pay/1000000).toFixed(2) + 'M', int: (interest/1000000).toFixed(1) + 'M' };
+            };
+
+            const arena = calc(p_arena);
+            document.getElementById('row-arena-pay').innerText = '$' + arena.pay;
+            document.getElementById('row-arena-int').innerText = '$' + arena.int;
+
+            const police = calc(p_police);
+            document.getElementById('row-police-pay').innerText = '$' + police.pay;
+            document.getElementById('row-police-int').innerText = '$' + police.int;
+
+            const sw = calc(p_sw);
+            document.getElementById('row-sw-pay').innerText = '$' + sw.pay;
+            document.getElementById('row-sw-int').innerText = '$' + sw.int;
+            
+            const oak = calc(p_oak);
+            document.getElementById('row-oak-pay').innerText = '$' + oak.pay;
+            document.getElementById('row-oak-int').innerText = '$' + oak.int;
+
+
+            // CHART
             const ctx = document.getElementById('rateChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: dates,
                     datasets: [{
-                        label: 'Total Interest Cost (Millions)',
-                        data: costs.map(c => c / 1000000),
-                        borderColor: '#e74c3c', // Red
-                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                        yAxisID: 'y',
+                        label: 'Total City Annual Debt Payments ($ Millions)',
+                        data: annualCosts.map(c => c / 1000000),
+                        borderColor: '#c0392b',
+                        backgroundColor: 'rgba(192, 57, 43, 0.1)',
                         fill: true
-                    }, {
-                        label: 'Debenture Rate (%)',
-                        data: debentureRates,
-                        borderColor: '#2980b9', // Blue
-                        borderDash: [5, 5],
-                        yAxisID: 'y1',
-                        fill: false
                     }]
-                },
-                options: {
-                    responsive: true,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        y: { 
-                            type: 'linear', display: true, position: 'left', 
-                            title: { display: true, text: 'Cost ($ Millions)' } 
-                        },
-                        y1: { 
-                            type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false },
-                            title: { display: true, text: 'Interest Rate (%)' } 
-                        }
-                    }
                 }
             });
-        } catch (e) { console.error("Error loading data:", e); }
+
+        } catch (e) { console.error("Error:", e); }
     }
 
     fetchData();
