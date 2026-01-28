@@ -79,7 +79,7 @@ def calculate_project_costs(bond_yield):
         grand_total_interest += (total_cost - p["principal"])
 
     return {
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "bond_yield": round(bond_yield, 3),
         "total_rate": round(total_rate, 3),
         "grand_annual": round(grand_total_annual, 2),
